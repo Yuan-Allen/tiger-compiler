@@ -15,7 +15,7 @@ int A::CompoundStm::MaxArgs() const {
 Table *A::CompoundStm::Interp(Table *t) const {
   // TODO: put your code here (lab1).
   Table *table1 = stm1->Interp(t);
-  return stm2->Interp(t);
+  return stm2->Interp(table1);
 }
 
 int A::AssignStm::MaxArgs() const {
@@ -26,8 +26,8 @@ int A::AssignStm::MaxArgs() const {
 Table *A::AssignStm::Interp(Table *t) const {
   // TODO: put your code here (lab1).
   IntAndTable *result = exp->Interp(t);
-  result->t->Update(id, result->i);
-  return result->t;
+  Table *result_table = result->t->Update(id, result->i);
+  return result_table;
 }
 
 int A::PrintStm::MaxArgs() const {
@@ -47,6 +47,7 @@ Table *A::PrintStm::Interp(Table *t) const {
     p = p->GetTail();
   }
   std::cout << std::endl;
+  return result->t;
 }
 
 // EXPRESSION---------------------------------------------------------------------------------------
@@ -72,9 +73,8 @@ int A::OpExp::MaxArgs() const {
 
 IntAndTable *A::OpExp::Interp(Table *t) const {
   IntAndTable *result = nullptr;
-  IntAndTable *left_result = nullptr, *right_result = nullptr;
-  left_result = left->Interp(t);
-  right_result = right->Interp(left_result->t);
+  IntAndTable *left_result = left->Interp(t),
+              *right_result = right->Interp(left_result->t);
   switch (oper) {
   case PLUS:
     result = new IntAndTable(left_result->i + right_result->i, right_result->t);
