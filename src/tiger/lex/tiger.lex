@@ -107,43 +107,40 @@
 ":=" {adjust(); return Parser::ASSIGN;}
 
 /* identifier */
-[a-z][a-z0-9_]* {adjust(); return Parser::ID;}
+[a-zA-Z][a-zA-Z0-9_]* {adjust(); return Parser::ID;}
 
 /* integer  */
 [0-9]+ {adjust(); return Parser::INT;}
 
 /* comment */
-"/*" {adjust(); comment_level_=1; ;begin(StartCondition__::COMMENT);}
+"/*" {adjust(); comment_level_=1; begin(StartCondition__::COMMENT);}
 
-<COMMENT> {
-  "/*" {adjust(); comment_level_++;}
+<COMMENT>{
+  "/*" {adjustStr(); comment_level_++;}
   "*/" {
-    adjust();
+    adjustStr();
     if(--comment_level_==0)
       begin(StartCondition__::INITIAL);
     }
-  .|\n {adjust();}
-  <<EOF>> {adjust(); errormsg_->Error(errormsg_->tok_pos_, "un matched comment!");}
+  .|\n {adjustStr();}
+  <<EOF>> {adjustStr(); errormsg_->Error(errormsg_->tok_pos_, "un matched comment!");}
 }
 
 /* string */
 
 \" {adjust(); string_buf_=""; begin(StartCondition__::STR);}
 
-<STR> {
-  \\[:digit:]{3} {adjustStr(); string_buf_+=static_cast<char>(stoi(matched().substr(1), nullptr, 8));}
-  \\[\t\n\f]+\\ {adjustStr();}
+<STR>{
+  \\n {adjustStr(); string_buf_+='\n';}
+  \\t {adjustStr(); string_buf_+='\t';}
+  \\\\ {adjustStr(); string_buf_+='\\';}
+  \\\" {adjustStr(); string_buf_+='"';}
+  \\[0-9]{3} {adjustStr(); string_buf_+=static_cast<char>(stoi(matched().substr(1)));}
+  \\[ \t\n\f]+\\ {adjustStr();}
   \\\^@ {adjustStr(); string_buf_+=static_cast<char>(0);}
-  \\\^G {adjustStr(); string_buf_+=static_cast<char>(7);}
-  \\\^H {adjustStr(); string_buf_+=static_cast<char>(8);}
-  \\\^I {adjustStr(); string_buf_+=static_cast<char>(9);}
-  \\\^J {adjustStr(); string_buf_+=static_cast<char>(10);}
-  \\\^K {adjustStr(); string_buf_+=static_cast<char>(11);}
-  \\\^L {adjustStr(); string_buf_+=static_cast<char>(12);}
-  \\\^M {adjustStr(); string_buf_+=static_cast<char>(13);}
-  \\\^Z {adjustStr(); string_buf_+=static_cast<char>(26);}
+  \\\^[A-Z] {adjustStr(); string_buf_+=static_cast<char>(matched()[2]-'A'+1);}
   \\\^\[ {adjustStr(); string_buf_+=static_cast<char>(27);}
-  \" {adjustStr(); begin(StartCondition__::STR); setMatched(string_buf_); return Parser::STRING;}
+  \" {adjustStr(); begin(StartCondition__::INITIAL); setMatched(string_buf_); return Parser::STRING;}
   <<EOF>> {adjustStr(); errormsg_->Error(errormsg_->tok_pos_, "un matched string!");}
   . {adjustStr(); string_buf_+=matched();}
 }
