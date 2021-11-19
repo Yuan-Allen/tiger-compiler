@@ -15,7 +15,7 @@ namespace tr {
 
 Access *Access::AllocLocal(Level *level, bool escape) {
   /* TODO: Put your lab5 code here */
-  // return new tr::Access(level, level->frame_->AllocLocal(escape));
+  return new tr::Access(level, level->frame_->AllocLocal(escape));
 }
 
 class Cx {
@@ -115,6 +115,16 @@ public:
     /* TODO: Put your lab5 code here */
   }
 };
+
+ProgTr::ProgTr(std::unique_ptr<absyn::AbsynTree> absyn_tree,
+               std::unique_ptr<err::ErrorMsg> errormsg)
+    : absyn_tree_(std::move(absyn_tree)), errormsg_(std::move(errormsg)),
+      tenv_(std::make_unique<env::TEnv>()),
+      venv_(std::make_unique<env::VEnv>()) {
+  temp::Label *name = temp::LabelFactory::NamedLabel("main");
+  main_level_ = std::make_unique<Level>(
+      frame::NewFrame(name, std::list<bool>()), nullptr);
+}
 
 void ProgTr::Translate() {
   /* TODO: Put your lab5 code here */

@@ -35,7 +35,7 @@ public:
     }
   }
 
-  frame::Access *AllocLocal(bool escape) {
+  frame::Access *AllocLocal(bool escape) override {
     frame::Access *access = nullptr;
     if (escape) {
       offset -= reg_manager->WordSize();
@@ -47,6 +47,10 @@ public:
   }
 };
 /* TODO: Put your lab5 code here */
+
+Frame *NewFrame(temp::Label *name, std::list<bool> formals) {
+  return new X64Frame(name, formals);
+}
 
 tree::Exp *InFrameAccess::ToExp(tree::Exp *frame_ptr) const {
   return new tree::MemExp(new tree::BinopExp(tree::BinOp::PLUS_OP, frame_ptr,

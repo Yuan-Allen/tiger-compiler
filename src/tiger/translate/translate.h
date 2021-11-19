@@ -35,7 +35,7 @@ public:
   Level(frame::Frame *frame, Level *parent) : frame_(frame), parent_(parent) {}
   static Level *NewLevel(tr::Level *parent, temp::Label name,
                          std::list<bool> formals) {
-    frame::Frame *f = new frame::Frame(&name, formals);
+    frame::Frame *f = frame::NewFrame(&name, formals);
     return new Level(f, parent);
   }
 };
@@ -44,14 +44,7 @@ class ProgTr {
 public:
   // TODO: Put your lab5 code here */
   ProgTr(std::unique_ptr<absyn::AbsynTree> absyn_tree,
-         std::unique_ptr<err::ErrorMsg> errormsg)
-      : absyn_tree_(std::move(absyn_tree)), errormsg_(std::move(errormsg)),
-        tenv_(std::make_unique<env::TEnv>()),
-        venv_(std::make_unique<env::VEnv>()) {
-    temp::Label *name = temp::LabelFactory::NamedLabel("main");
-    main_level_ = std::make_unique<Level>(
-        new frame::Frame(name, std::list<bool>()), nullptr);
-  }
+         std::unique_ptr<err::ErrorMsg> errormsg);
 
   /**
    * Translate IR tree

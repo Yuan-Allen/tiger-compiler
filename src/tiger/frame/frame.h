@@ -83,7 +83,7 @@ public:
   int offset;
 
   Frame(temp::Label *name, std::list<bool> formals) : name_(name) {}
-  frame::Access *AllocLocal(bool escape);
+  virtual frame::Access *AllocLocal(bool escape) = 0;
 };
 
 /**
@@ -123,6 +123,7 @@ private:
 };
 
 /* TODO: Put your lab5 code here */
+Frame *NewFrame(temp::Label *name, std::list<bool> formals);
 
 } // namespace frame
 
