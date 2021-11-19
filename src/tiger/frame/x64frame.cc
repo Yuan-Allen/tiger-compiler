@@ -52,6 +52,11 @@ Frame *NewFrame(temp::Label *name, std::list<bool> formals) {
   return new X64Frame(name, formals);
 }
 
+tree::Exp *externalCall(const std::string &name, tree::ExpList *args) {
+  return new tree::CallExp(
+      new tree::NameExp(temp::LabelFactory::NamedLabel(name)), args);
+}
+
 tree::Exp *InFrameAccess::ToExp(tree::Exp *frame_ptr) const {
   return new tree::MemExp(new tree::BinopExp(tree::BinOp::PLUS_OP, frame_ptr,
                                              new tree::ConstExp(offset)));

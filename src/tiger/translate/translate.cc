@@ -59,6 +59,11 @@ public:
   }
   [[nodiscard]] Cx UnCx(err::ErrorMsg *errormsg) const override {
     /* TODO: Put your lab5 code here */
+    temp::Label *t = temp::LabelFactory::NewLabel();
+    temp::Label *f = temp::LabelFactory::NewLabel();
+    tree::CjumpStm *stm =
+        new tree::CjumpStm(tree::NE_OP, exp_, new tree::ConstExp(0), t, f);
+    return tr::Cx(&(stm->true_label_), &(stm->false_label_), stm);
   }
 };
 
@@ -110,9 +115,11 @@ public:
   }
   [[nodiscard]] tree::Stm *UnNx() const override {
     /* TODO: Put your lab5 code here */
+    return new tree::ExpStm(UnEx());
   }
   [[nodiscard]] Cx UnCx(err::ErrorMsg *errormsg) const override {
     /* TODO: Put your lab5 code here */
+    return cx_;
   }
 };
 
@@ -135,12 +142,20 @@ void ProgTr::Translate() {
                          errormsg_.get());
 }
 
-tr::Exp *SimpleVar(tr::Access *access, tr::Level *level) {
+tree::Exp *StaticLink(tr::Level *current, tr::Level *target) {
   tree::Exp *static_link = new tree::TempExp(reg_manager->FramePointer());
-  while (level != access->level_) {
-    static_link = level->frame_->formals_->front()->ToExp(static_link);
-    level = level->parent_;
+  while (current != target) {
+    if (current == nullptr) {
+      return nullptr;
+    }
+    static_link = current->frame_->formals_->front()->ToExp(static_link);
+    current = current->parent_;
   }
+  return static_link;
+}
+
+tr::Exp *SimpleVar(tr::Access *access, tr::Level *level) {
+  tree::Exp *static_link = tr::StaticLink(level, access->level_);
   return new tr::ExExp(access->access_->ToExp(static_link));
 }
 
@@ -167,6 +182,22 @@ tr::Exp *StringExp(std::string str) {
   return new tr::ExExp(new tree::NameExp(label));
 }
 
+tr::Exp *CallExp(temp::Label *label, tree::Exp *static_link,
+                 std::list<tr::Exp *> args) {
+  tree::ExpList *args_list = new tree::ExpList();
+  for (tr::Exp *exp : args) {
+    args_list->Append(exp->UnEx());
+  }
+  if (static_link != nullptr) {
+    args_list->Insert(static_link);
+    return new tr::ExExp(
+        new tree::CallExp(new tree::NameExp(label), args_list));
+  } else {
+    return new tr::ExExp(
+        frame::externalCall(temp::LabelFactory::LabelString(label), args_list));
+  }
+}
+
 } // namespace tr
 
 namespace absyn {
@@ -175,8 +206,7 @@ tr::ExpAndTy *AbsynTree::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
                                    err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
-  // root_->Translate(venv, tenv, level, label, errormsg);
-  return nullptr;
+  root_->Translate(venv, tenv, level, label, errormsg);
 }
 
 tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
@@ -262,6 +292,22 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                  tr::Level *level, temp::Label *label,
                                  err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
+  env::EnvEntry *entry = venv->Look(func_);
+  if (entry == nullptr || typeid(*entry) != typeid(env::FunEntry)) {
+    errormsg->Error(pos_, "undefined function %s", func_->Name().c_str());
+    return new tr::ExpAndTy(nullptr, type::IntTy::Instance());
+  }
+  env::FunEntry *fun_entry = static_cast<env::FunEntry *>(entry);
+  std::list<tr::Exp *> args_trexp;
+  for (absyn::Exp *exp : args_->GetList()) {
+    tr::ExpAndTy *arg = exp->Translate(venv, tenv, level, label, errormsg);
+    args_trexp.push_back(arg->exp_);
+  }
+  return new tr::ExpAndTy(
+      tr::CallExp(this->func_,
+                  tr::StaticLink(level, fun_entry->level_->parent_),
+                  args_trexp),
+      fun_entry->result_);
 }
 
 tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,

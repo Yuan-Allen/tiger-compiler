@@ -124,7 +124,7 @@ private:
 
 /* TODO: Put your lab5 code here */
 Frame *NewFrame(temp::Label *name, std::list<bool> formals);
-
+tree::Exp *externalCall(const std::string &name, tree::ExpList *args);
 } // namespace frame
 
 #endif
