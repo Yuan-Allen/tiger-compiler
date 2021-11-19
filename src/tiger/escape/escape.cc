@@ -99,7 +99,8 @@ void WhileExp::Traverse(esc::EscEnvPtr env, int depth) {
 
 void ForExp::Traverse(esc::EscEnvPtr env, int depth) {
   /* TODO: Put your lab5 code here */
-  env->Enter(var_, new esc::EscapeEntry(depth, new bool(false)));
+  escape_ = false;
+  env->Enter(var_, new esc::EscapeEntry(depth, &escape_));
   lo_->Traverse(env, depth);
   hi_->Traverse(env, depth);
   body_->Traverse(env, depth);
