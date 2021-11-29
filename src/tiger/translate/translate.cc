@@ -198,6 +198,64 @@ tr::Exp *CallExp(temp::Label *label, tree::Exp *static_link,
   }
 }
 
+tr::Exp *OpExp(absyn::Oper oper, tr::Exp *left, tr::Exp *right,
+               bool string_eq) {
+  // string_eq为true表明是字符串类型相等的判定，需要调用external call
+  if (string_eq) {
+    tree::ExpList *exp_list = new tree::ExpList();
+    exp_list->Append(left->UnEx());
+    exp_list->Append(right->UnEx());
+    return new tr::ExExp(frame::externalCall("string_equal", exp_list));
+  }
+  tree::CjumpStm *stm = nullptr;
+  switch (oper) {
+  // + - * /
+  case absyn::Oper::PLUS_OP:
+    return new tr::ExExp(
+        new tree::BinopExp(tree::BinOp::PLUS_OP, left->UnEx(), right->UnEx()));
+    break;
+  case absyn::Oper::MINUS_OP:
+    return new tr::ExExp(
+        new tree::BinopExp(tree::BinOp::MINUS_OP, left->UnEx(), right->UnEx()));
+    break;
+  case absyn::Oper::TIMES_OP:
+    return new tr::ExExp(
+        new tree::BinopExp(tree::BinOp::MUL_OP, left->UnEx(), right->UnEx()));
+    break;
+  case absyn::Oper::DIVIDE_OP:
+    return new tr::ExExp(
+        new tree::BinopExp(tree::BinOp::DIV_OP, left->UnEx(), right->UnEx()));
+    break;
+  // == != < <= > >=
+  case absyn::Oper::EQ_OP:
+    stm = new tree::CjumpStm(tree::RelOp::EQ_OP, left->UnEx(), right->UnEx(),
+                             nullptr, nullptr);
+    break;
+  case absyn::Oper::NEQ_OP:
+    stm = new tree::CjumpStm(tree::RelOp::NE_OP, left->UnEx(), right->UnEx(),
+                             nullptr, nullptr);
+    break;
+  case absyn::Oper::LT_OP:
+    stm = new tree::CjumpStm(tree::RelOp::LT_OP, left->UnEx(), right->UnEx(),
+                             nullptr, nullptr);
+    break;
+  case absyn::Oper::LE_OP:
+    stm = new tree::CjumpStm(tree::RelOp::LE_OP, left->UnEx(), right->UnEx(),
+                             nullptr, nullptr);
+    break;
+  case absyn::Oper::GT_OP:
+    stm = new tree::CjumpStm(tree::RelOp::GT_OP, left->UnEx(), right->UnEx(),
+                             nullptr, nullptr);
+    break;
+  case absyn::Oper::GE_OP:
+    stm = new tree::CjumpStm(tree::RelOp::GE_OP, left->UnEx(), right->UnEx(),
+                             nullptr, nullptr);
+    break;
+  }
+  // 其他情况都在上面return过了，下面只有整数类型的比较
+  return new CxExp(&(stm->true_label_), &(stm->false_label_), stm);
+}
+
 } // namespace tr
 
 namespace absyn {
@@ -314,6 +372,17 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                tr::Level *level, temp::Label *label,
                                err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
+  tr::ExpAndTy *left = left_->Translate(venv, tenv, level, label, errormsg);
+  tr::ExpAndTy *right = right_->Translate(venv, tenv, level, label, errormsg);
+  if (left->ty_->IsSameType(type::StringTy::Instance()) &&
+      right->ty_->IsSameType(type::StringTy::Instance())) {
+    assert(oper_ == absyn::Oper::EQ_OP || oper_ == absyn::Oper::NEQ_OP);
+    return new tr::ExpAndTy(tr::OpExp(oper_, left->exp_, right->exp_, true),
+                            type::IntTy::Instance());
+  } else {
+    return new tr::ExpAndTy(tr::OpExp(oper_, left->exp_, right->exp_, false),
+                            type::IntTy::Instance());
+  }
 }
 
 tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
