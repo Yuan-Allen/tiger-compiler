@@ -85,4 +85,4 @@ test_lab5:
 #     - cp -r /home/stu/upload.py /home/stu/scripts /home/stu/testdata .
 #     - make gradeall | tee output.log
 #     - python3 upload.py
-# 
+#
