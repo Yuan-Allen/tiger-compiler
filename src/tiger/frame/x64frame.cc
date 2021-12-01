@@ -20,6 +20,7 @@ public:
   explicit InRegAccess(temp::Temp *reg) : reg(reg) {}
   /* TODO: Put your lab5 code here */
   tree::Exp *ToExp(tree::Exp *frame_ptr) const override {
+    // fprintf(stderr, "reg toExp\n");
     return new tree::TempExp(reg);
   }
 };
@@ -33,6 +34,30 @@ public:
     for (bool escape : formals) {
       formals_->push_back(AllocLocal(escape));
     }
+
+    int i = 0;
+    temp::TempList *temp_list = reg_manager->ArgRegs();
+    view_shift = new tree::ExpStm(new tree::ConstExp(0));
+    for (frame::Access *access : *formals_) {
+      if (i < 6) {
+        view_shift = new tree::SeqStm(
+            view_shift,
+            new tree::MoveStm(
+                access->ToExp(new tree::TempExp(reg_manager->FramePointer())),
+                new tree::TempExp(temp_list->NthTemp(i))));
+      } else {
+        view_shift = new tree::SeqStm(
+            view_shift,
+            new tree::MoveStm(
+                access->ToExp(new tree::TempExp(reg_manager->FramePointer())),
+                new tree::MemExp(new tree::BinopExp(
+                    tree::BinOp::PLUS_OP,
+                    new tree::TempExp(reg_manager->FramePointer()),
+                    new tree::ConstExp((i + 1 - 6) *
+                                       reg_manager->WordSize())))));
+      }
+      ++i;
+    }
   }
 
   frame::Access *AllocLocal(bool escape) override {
@@ -45,6 +70,8 @@ public:
     }
     return access;
   }
+
+  std::list<frame::Access *> GetFormals() override { return *formals_; }
 };
 /* TODO: Put your lab5 code here */
 
@@ -58,8 +85,13 @@ tree::Exp *externalCall(const std::string &name, tree::ExpList *args) {
 }
 
 tree::Exp *InFrameAccess::ToExp(tree::Exp *frame_ptr) const {
+  // fprintf(stderr, " frame toExp\n");
   return new tree::MemExp(new tree::BinopExp(tree::BinOp::PLUS_OP, frame_ptr,
                                              new tree::ConstExp(offset)));
+}
+
+tree::Stm *procEntryExit1(Frame *f, tree::Stm *stm) {
+  return new tree::SeqStm(f->view_shift, stm);
 }
 
 X64RegManager::X64RegManager() {

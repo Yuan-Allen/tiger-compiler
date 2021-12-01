@@ -81,10 +81,12 @@ class Frame {
 public:
   temp::Label *name_;
   std::list<frame::Access *> *formals_;
+  tree::Stm *view_shift;
   int offset;
 
   Frame(temp::Label *name, std::list<bool> formals) : name_(name) {}
   virtual frame::Access *AllocLocal(bool escape) = 0;
+  virtual std::list<frame::Access *> GetFormals() { return *formals_; };
 };
 
 /**
@@ -142,6 +144,7 @@ private:
 /* TODO: Put your lab5 code here */
 Frame *NewFrame(temp::Label *name, std::list<bool> formals);
 tree::Exp *externalCall(const std::string &name, tree::ExpList *args);
+tree::Stm *procEntryExit1(Frame *f, tree::Stm *stm);
 } // namespace frame
 
 #endif

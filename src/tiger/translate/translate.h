@@ -33,10 +33,19 @@ public:
 
   /* TODO: Put your lab5 code here */
   Level(frame::Frame *frame, Level *parent) : frame_(frame), parent_(parent) {}
-  static Level *NewLevel(tr::Level *parent, temp::Label name,
+  static Level *NewLevel(tr::Level *parent, temp::Label *name,
                          std::list<bool> formals) {
-    frame::Frame *f = frame::NewFrame(&name, formals);
+    formals.push_front(true);
+    frame::Frame *f = frame::NewFrame(name, formals);
     return new Level(f, parent);
+  }
+  std::list<tr::Access *> GetAccessList() {
+    std::list<frame::Access *> formals = frame_->GetFormals();
+    std::list<tr::Access *> ret;
+    for (frame::Access *access : formals) {
+      ret.push_back(new tr::Access(this, access));
+    }
+    return ret;
   }
 };
 
