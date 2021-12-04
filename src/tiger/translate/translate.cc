@@ -128,7 +128,7 @@ ProgTr::ProgTr(std::unique_ptr<absyn::AbsynTree> absyn_tree,
     : absyn_tree_(std::move(absyn_tree)), errormsg_(std::move(errormsg)),
       tenv_(std::make_unique<env::TEnv>()),
       venv_(std::make_unique<env::VEnv>()) {
-  temp::Label *name = temp::LabelFactory::NamedLabel("main");
+  temp::Label *name = temp::LabelFactory::NamedLabel("tigermain");
   main_level_ = std::make_unique<Level>(
       frame::NewFrame(name, std::list<bool>()), nullptr);
 }
@@ -137,9 +137,12 @@ void ProgTr::Translate() {
   /* TODO: Put your lab5 code here */
   FillBaseVEnv();
   FillBaseTEnv();
-  temp::Label *lable = temp::LabelFactory::NewLabel();
-  absyn_tree_->Translate(venv_.get(), tenv_.get(), main_level_.get(), lable,
-                         errormsg_.get());
+  temp::Label *label = temp::LabelFactory::NewLabel();
+  tr::ExpAndTy *root_info = absyn_tree_->Translate(
+      venv_.get(), tenv_.get(), main_level_.get(), label, errormsg_.get());
+  // tigermain也要当成一个函数，加入frags，作为程序入口
+  frags->PushBack(
+      new frame::ProcFrag(root_info->exp_->UnNx(), main_level_->frame_));
 }
 
 tree::Exp *StaticLink(tr::Level *current, tr::Level *target) {
@@ -448,7 +451,7 @@ tr::ExpAndTy *AbsynTree::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
                                    err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
-  root_->Translate(venv, tenv, level, label, errormsg);
+  return root_->Translate(venv, tenv, level, label, errormsg);
 }
 
 tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
