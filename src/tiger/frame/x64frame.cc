@@ -94,6 +94,27 @@ tree::Stm *procEntryExit1(Frame *f, tree::Stm *stm) {
   return new tree::SeqStm(f->view_shift, stm);
 }
 
+assem::InstrList *procEntryExit2(assem::InstrList *body) {
+  body->Append(new assem::OperInstr("", new temp::TempList(),
+                                    reg_manager->ReturnSink(), nullptr));
+  return body;
+}
+
+assem::Proc *ProcEntryExit3(frame::Frame *f, assem::InstrList *body) {
+  // ".set xx_framesize, size"
+  std::string prolog = ".set " + f->name_->Name() + "_framesize, " +
+                       std::to_string(-(f->offset)) + "\n";
+  // "name:"
+  prolog += f->name_->Name() + ":\n";
+  // "subq $size, %rsp"
+  prolog += "subq $" + std::to_string(-(f->offset)) + ", %rsp\n";
+
+  //"addq $size, %rsp"
+  std::string epilog = "addq $" + std::to_string(-(f->offset)) + ", %rsp\n";
+  epilog += "retq\n";
+  return new assem::Proc(prolog, body, epilog);
+}
+
 X64RegManager::X64RegManager() {
   temp::Temp *t = nullptr;
   for (size_t i = 0; i < 16; i++) {
@@ -155,16 +176,21 @@ temp::TempList *X64RegManager::CallerSaves() {
 
 temp::TempList *X64RegManager::CalleeSaves() {
   temp::TempList *temp_list = new temp::TempList();
-  temp_list->Append(GetRegister(1));  //%rax
+  temp_list->Append(GetRegister(1));  //%rbx
   temp_list->Append(GetRegister(6));  //%rbp
   temp_list->Append(GetRegister(12)); //%r12
   temp_list->Append(GetRegister(13)); //%r13
   temp_list->Append(GetRegister(14)); //%r14
   temp_list->Append(GetRegister(15)); //%r15
+  return temp_list;
 }
 
 temp::TempList *X64RegManager::ReturnSink() {
-  return nullptr; // for lab5 part1
+  // return nullptr; // for lab5 part1
+  temp::TempList *temp_list = CalleeSaves();
+  temp_list->Append(StackPointer()); //%rsp
+  temp_list->Append(ReturnValue());  //%rax
+  return temp_list;
 }
 
 int X64RegManager::WordSize() { return 8; }
@@ -179,6 +205,13 @@ temp::Temp *X64RegManager::StackPointer() {
 
 temp::Temp *X64RegManager::ReturnValue() {
   return GetRegister(0); //%rax
+}
+
+temp::TempList *X64RegManager::OpRegs() {
+  temp::TempList *temp_list = new temp::TempList();
+  temp_list->Append(GetRegister(3)); //%rdx
+  temp_list->Append(GetRegister(0)); //%rax
+  return temp_list;
 }
 
 } // namespace frame

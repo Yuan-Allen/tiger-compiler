@@ -62,6 +62,9 @@ public:
 
   [[nodiscard]] virtual temp::Temp *ReturnValue() = 0;
 
+  //返回乘法，除法用的寄存器(%rdx, %rax)
+  [[nodiscard]] virtual temp::TempList *OpRegs() = 0;
+
   temp::Map *temp_map_;
 
 protected:
@@ -87,6 +90,9 @@ public:
   Frame(temp::Label *name, std::list<bool> formals) : name_(name) {}
   virtual frame::Access *AllocLocal(bool escape) = 0;
   virtual std::list<frame::Access *> GetFormals() { return *formals_; };
+  virtual std::string GetLabel() {
+    return temp::LabelFactory::LabelString(name_);
+  }
 };
 
 /**
@@ -145,6 +151,9 @@ private:
 Frame *NewFrame(temp::Label *name, std::list<bool> formals);
 tree::Exp *externalCall(const std::string &name, tree::ExpList *args);
 tree::Stm *procEntryExit1(Frame *f, tree::Stm *stm);
+assem::InstrList *procEntryExit2(assem::InstrList *body);
+assem::Proc *ProcEntryExit3(frame::Frame *f, assem::InstrList *body);
+
 } // namespace frame
 
 #endif

@@ -347,7 +347,7 @@ type::Ty *ArrayExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
     return type::IntTy::Instance();
   }
   type::Ty *init_ty = init_->SemAnalyze(venv, tenv, labelcount, errormsg);
-  if (!size_ty->IsSameType(init_ty)) {
+  if (!init_ty->IsSameType(static_cast<type::ArrayTy *>(ty)->ty_)) {
     errormsg->Error(init_->pos_, "type mismatch");
     return type::IntTy::Instance();
   }
@@ -517,4 +517,4 @@ void ProgSem::SemAnalyze() {
   absyn_tree_->SemAnalyze(venv_.get(), tenv_.get(), errormsg_.get());
 }
 
-} // namespace tr
+} // namespace sem

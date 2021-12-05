@@ -275,9 +275,9 @@ tree::Stm *RecordField(const std::vector<tr::Exp *> &exp_list, temp::Temp *r,
   } else {
     return new tree::SeqStm(
         new tree::MoveStm(
-            new tree::BinopExp(
+            new tree::MemExp(new tree::BinopExp(
                 tree::BinOp::PLUS_OP, new tree::TempExp(r),
-                new tree::ConstExp(index * reg_manager->WordSize())),
+                new tree::ConstExp(index * reg_manager->WordSize()))),
             exp_list[index]->UnEx()),
         tr::RecordField(exp_list, r, index + 1)); // 用index+1递归
   }
@@ -657,7 +657,7 @@ tr::ExpAndTy *WhileExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   tr::ExpAndTy *test_info =
       test_->Translate(venv, tenv, level, label, errormsg);
   tr::ExpAndTy *body_info =
-      test_->Translate(venv, tenv, level, done_label, errormsg);
+      body_->Translate(venv, tenv, level, done_label, errormsg);
   return new tr::ExpAndTy(
       tr::WhileExp(test_info->exp_, body_info->exp_, done_label, errormsg),
       body_info->ty_);
@@ -755,7 +755,7 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                                      tyList, result_ty));
     } else {
       venv->Enter(function->name_,
-                  new env::FunEntry(new_level, function->name_, tyList,
+                  new env::FunEntry(new_level, function_label, tyList,
                                     type::VoidTy::Instance()));
     }
   }

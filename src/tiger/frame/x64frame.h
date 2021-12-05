@@ -21,6 +21,7 @@ public:
   temp::Temp *FramePointer() override;
   temp::Temp *StackPointer() override;
   temp::Temp *ReturnValue() override;
+  temp::TempList *OpRegs() override;
 };
 
 } // namespace frame
