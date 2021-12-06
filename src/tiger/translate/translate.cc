@@ -189,16 +189,22 @@ tr::Exp *StringExp(std::string str) {
 }
 
 tr::Exp *CallExp(temp::Label *label, tree::Exp *static_link,
-                 std::list<tr::Exp *> args) {
+                 std::list<tr::Exp *> args, tr::Level *caller) {
   tree::ExpList *args_list = new tree::ExpList();
   for (tr::Exp *exp : args) {
     args_list->Append(exp->UnEx());
   }
   if (static_link != nullptr) {
     args_list->Insert(static_link);
+    if (static_cast<int>(args.size() + 1) > caller->frame_->maxArgs) {
+      caller->frame_->maxArgs = static_cast<int>(args.size() + 1);
+    }
     return new tr::ExExp(
         new tree::CallExp(new tree::NameExp(label), args_list));
   } else {
+    if (static_cast<int>(args.size()) > caller->frame_->maxArgs) {
+      caller->frame_->maxArgs = static_cast<int>(args.size());
+    }
     return new tr::ExExp(
         frame::externalCall(temp::LabelFactory::LabelString(label), args_list));
   }
@@ -558,8 +564,8 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   }
   return new tr::ExpAndTy(
       tr::CallExp(this->func_,
-                  tr::StaticLink(level, fun_entry->level_->parent_),
-                  args_trexp),
+                  tr::StaticLink(level, fun_entry->level_->parent_), args_trexp,
+                  level),
       fun_entry->result_);
 }
 

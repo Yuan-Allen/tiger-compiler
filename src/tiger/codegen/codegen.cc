@@ -288,6 +288,7 @@ temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list,
       // instr_list.Append(new assem::OperInstr(
       //     "pushq `s0", nullptr, new temp::TempList({arg}), nullptr));
       // "movq `s0, offset(`s1)"
+
       std::string str =
           "movq `s0, " +
           std::to_string((i - reg_size) * reg_manager->WordSize()) + "(`s1)";

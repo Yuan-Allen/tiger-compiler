@@ -86,6 +86,8 @@ public:
   std::list<frame::Access *> *formals_;
   tree::Stm *view_shift;
   int offset;
+  // call其他函数时用的参数的最大数量，用于生成该frame时分配足够多的空间
+  int maxArgs;
 
   Frame(temp::Label *name, std::list<bool> formals) : name_(name) {}
   virtual frame::Access *AllocLocal(bool escape) = 0;

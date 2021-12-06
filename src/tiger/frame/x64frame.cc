@@ -30,6 +30,7 @@ class X64Frame : public Frame {
 public:
   X64Frame(temp::Label *name, std::list<bool> formals) : Frame(name, formals) {
     offset = 0;
+    maxArgs = 0;
     formals_ = new std::list<frame::Access *>();
     for (bool escape : formals) {
       formals_->push_back(AllocLocal(escape));
@@ -106,11 +107,15 @@ assem::Proc *ProcEntryExit3(frame::Frame *f, assem::InstrList *body) {
                        std::to_string(-(f->offset)) + "\n";
   // "name:"
   prolog += f->name_->Name() + ":\n";
+  int size_for_args =
+      f->maxArgs > 6 ? (f->maxArgs - 6) * reg_manager->WordSize() : 0;
   // "subq $size, %rsp"
-  prolog += "subq $" + std::to_string(-(f->offset)) + ", %rsp\n";
+  prolog +=
+      "subq $" + std::to_string(-(f->offset) + size_for_args) + ", %rsp\n";
 
   //"addq $size, %rsp"
-  std::string epilog = "addq $" + std::to_string(-(f->offset)) + ", %rsp\n";
+  std::string epilog =
+      "addq $" + std::to_string(-(f->offset) + size_for_args) + ", %rsp\n";
   epilog += "retq\n";
   return new assem::Proc(prolog, body, epilog);
 }
