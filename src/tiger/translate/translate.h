@@ -32,11 +32,29 @@ public:
   Level *parent_;
 
   /* TODO: Put your lab5 code here */
+  Level(frame::Frame *frame, Level *parent) : frame_(frame), parent_(parent) {}
+  static Level *NewLevel(tr::Level *parent, temp::Label *name,
+                         std::list<bool> formals) {
+    formals.push_front(true);
+    frame::Frame *f = frame::NewFrame(name, formals);
+    return new Level(f, parent);
+  }
+  std::list<tr::Access *> GetAccessList() {
+    std::list<frame::Access *> formals = frame_->GetFormals();
+    std::list<tr::Access *> ret;
+    for (frame::Access *access : formals) {
+      ret.push_back(new tr::Access(this, access));
+    }
+    return ret;
+  }
 };
 
 class ProgTr {
 public:
-  /* TODO: Put your lab5 code here */ 
+  /* TODO: Put your lab5 code here */
+  ProgTr(std::unique_ptr<absyn::AbsynTree> absyn_tree,
+         std::unique_ptr<err::ErrorMsg> errormsg);
+
   /**
    * Translate IR tree
    */
@@ -49,7 +67,6 @@ public:
   std::unique_ptr<err::ErrorMsg> TransferErrormsg() {
     return std::move(errormsg_);
   }
-
 
 private:
   std::unique_ptr<absyn::AbsynTree> absyn_tree_;

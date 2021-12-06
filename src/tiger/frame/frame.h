@@ -5,10 +5,9 @@
 #include <memory>
 #include <string>
 
+#include "tiger/codegen/assem.h"
 #include "tiger/frame/temp.h"
 #include "tiger/translate/tree.h"
-#include "tiger/codegen/assem.h"
-
 
 namespace frame {
 
@@ -63,7 +62,11 @@ public:
 
   [[nodiscard]] virtual temp::Temp *ReturnValue() = 0;
 
+  //返回乘法，除法用的寄存器(%rdx, %rax)
+  [[nodiscard]] virtual temp::TempList *OpRegs() = 0;
+
   temp::Map *temp_map_;
+
 protected:
   std::vector<temp::Temp *> regs_;
 };
@@ -71,13 +74,27 @@ protected:
 class Access {
 public:
   /* TODO: Put your lab5 code here */
-  
+  virtual tree::Exp *ToExp(tree::Exp *frame_ptr) const = 0;
+
   virtual ~Access() = default;
-  
 };
 
 class Frame {
   /* TODO: Put your lab5 code here */
+public:
+  temp::Label *name_;
+  std::list<frame::Access *> *formals_;
+  tree::Stm *view_shift;
+  int offset;
+  // call其他函数时用的参数的最大数量，用于生成该frame时分配足够多的空间
+  int maxArgs;
+
+  Frame(temp::Label *name, std::list<bool> formals) : name_(name) {}
+  virtual frame::Access *AllocLocal(bool escape) = 0;
+  virtual std::list<frame::Access *> GetFormals() { return *formals_; };
+  virtual std::string GetLabel() {
+    return temp::LabelFactory::LabelString(name_);
+  }
 };
 
 /**
@@ -97,7 +114,8 @@ public:
    *Generate assembly for main program
    * @param out FILE object for output assembly file
    */
-  virtual void OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const = 0;
+  virtual void OutputAssem(FILE *out, OutputPhase phase,
+                           bool need_ra) const = 0;
 };
 
 class StringFrag : public Frag {
@@ -125,13 +143,18 @@ class Frags {
 public:
   Frags() = default;
   void PushBack(Frag *frag) { frags_.emplace_back(frag); }
-  const std::list<Frag*> &GetList() { return frags_; }
+  const std::list<Frag *> &GetList() { return frags_; }
 
 private:
-  std::list<Frag*> frags_;
+  std::list<Frag *> frags_;
 };
 
 /* TODO: Put your lab5 code here */
+Frame *NewFrame(temp::Label *name, std::list<bool> formals);
+tree::Exp *externalCall(const std::string &name, tree::ExpList *args);
+tree::Stm *procEntryExit1(Frame *f, tree::Stm *stm);
+assem::InstrList *procEntryExit2(assem::InstrList *body);
+assem::Proc *ProcEntryExit3(frame::Frame *f, assem::InstrList *body);
 
 } // namespace frame
 
