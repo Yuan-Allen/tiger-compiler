@@ -147,7 +147,8 @@ X64RegManager::X64RegManager() {
 temp::TempList *X64RegManager::Registers() {
   temp::TempList *temp_list = new temp::TempList();
   for (size_t i = 0; i < 16; i++) {
-    if (i == 4)
+    // no rsp
+    if (i == 7)
       continue;
     temp_list->Append(GetRegister(i));
   }
