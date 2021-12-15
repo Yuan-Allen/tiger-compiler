@@ -40,6 +40,7 @@ private:
   live::LiveGraph liveness;
 
   live::LiveGraph GetLiveGraph();
+  void RewriteProgram();
 };
 
 } // namespace ra

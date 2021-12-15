@@ -65,6 +65,9 @@ public:
   //返回乘法，除法用的寄存器(%rdx, %rax)
   [[nodiscard]] virtual temp::TempList *OpRegs() = 0;
 
+  // 寄存器分配时可用的颜色数目
+  [[nodiscard]] virtual int ColorNum() = 0;
+
   temp::Map *temp_map_;
 
 protected:

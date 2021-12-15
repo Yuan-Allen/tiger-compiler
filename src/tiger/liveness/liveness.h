@@ -34,6 +34,7 @@ public:
   MoveList *Intersect(MoveList *list);
 
 private:
+  // 第一个是src, 第二个是dst
   std::list<std::pair<INodePtr, INodePtr>> move_list_;
 };
 

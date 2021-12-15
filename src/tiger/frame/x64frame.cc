@@ -220,4 +220,6 @@ temp::TempList *X64RegManager::OpRegs() {
   return temp_list;
 }
 
+int X64RegManager::ColorNum() { return 15; }
+
 } // namespace frame

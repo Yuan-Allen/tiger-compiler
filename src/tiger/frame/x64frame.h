@@ -22,6 +22,7 @@ public:
   temp::Temp *StackPointer() override;
   temp::Temp *ReturnValue() override;
   temp::TempList *OpRegs() override;
+  int ColorNum() override;
 };
 
 } // namespace frame
