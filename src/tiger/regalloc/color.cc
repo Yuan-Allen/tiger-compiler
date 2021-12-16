@@ -5,14 +5,38 @@ extern frame::RegManager *reg_manager;
 namespace col {
 /* TODO: Put your lab6 code here */
 col::Result Color::doColoring() {
+  // fprintf(stderr, "doColoring------------------------\n");
   init();
   Build();
   MakeWorklist();
+  int i = 0;
+  do {
+    // fprintf(stderr, "round %d\n", i++);
+    // ShowStates();
+    if (!simplifyWorklist.GetList().empty()) {
+      Simplify();
+    } else if (!worklistMoves->GetList().empty()) {
+      Coalesce();
+    } else if (!freezeWorklist.GetList().empty()) {
+      Freeze();
+    } else if (!spillWorklist.GetList().empty()) {
+      SelectSpill();
+    }
+
+  } while (!simplifyWorklist.GetList().empty() ||
+           !worklistMoves->GetList().empty() ||
+           !freezeWorklist.GetList().empty() ||
+           !spillWorklist.GetList().empty());
+  AssignColors();
+  return col::Result(coloring, spilledNodes);
 }
 
 void Color::init() {
   coloring = temp::Map::Empty();
-  activeMoves = new live::MoveList();
+  spilledNodes = new live::INodeList();
+  if (noSpillTemp == nullptr) {
+    noSpillTemp = new temp::TempList();
+  }
 }
 
 bool Color::precolored(temp::Temp *t) {
@@ -68,9 +92,10 @@ void Color::AddEdge(live::INodePtr u, live::INodePtr v) {
 
 live::MoveList *Color::NodeMoves(live::INodePtr node) {
   if (moveList.Look(node) == nullptr) {
-    return nullptr;
+    // return nullptr;
+    return new live::MoveList();
   }
-  return moveList.Look(node)->Intersect(activeMoves->Union(worklistMoves));
+  return moveList.Look(node)->Intersect(activeMoves.Union(worklistMoves));
 }
 
 bool Color::MoveRelated(live::INodePtr node) {
@@ -101,16 +126,18 @@ live::INodeListPtr Color::Adjacent(live::INodePtr node) {
 }
 
 void Color::Simplify() {
+  // fprintf(stderr, "Simplify\n");
   live::INodePtr node = simplifyWorklist.GetList().front();
   simplifyWorklist.DeleteNode(node);
   selectStack.Append(node);
   // Adjacent()?
-  for (live::INodePtr adj : node->Adj()->GetList()) {
+  for (live::INodePtr adj : Adjacent(node)->GetList()) {
     DecrementDegree(adj);
   }
 }
 
 void Color::DecrementDegree(live::INodePtr node) {
+  // fprintf(stderr, "DecrementDegree\n");
   // 认为precolor寄存器的degree是无限大
   if (precolored(node->NodeInfo()))
     return;
@@ -130,11 +157,12 @@ void Color::DecrementDegree(live::INodePtr node) {
 }
 
 void Color::EnableMoves(graph::NodeList<temp::Temp> *nodes) {
+  // fprintf(stderr, "EnableMoves\n");
   for (live::INodePtr node : nodes->GetList()) {
     for (std::pair<live::INodePtr, live::INodePtr> move :
          NodeMoves(node)->GetList()) {
-      if (activeMoves->Contain(move.first, move.second)) {
-        activeMoves->Delete(move.first, move.second);
+      if (activeMoves.Contain(move.first, move.second)) {
+        activeMoves.Delete(move.first, move.second);
         worklistMoves->Append(move.first, move.second);
       }
     }
@@ -142,22 +170,20 @@ void Color::EnableMoves(graph::NodeList<temp::Temp> *nodes) {
 }
 
 void Color::Coalesce() {
+  // fprintf(stderr, "coalesce\n");
   live::INodePtr x, y, u, v;
   // x: src, y: dst
   x = worklistMoves->GetList().front().first;
   y = worklistMoves->GetList().front().second;
-  x = GetAlias(x);
-  y = GetAlias(y);
 
   // 按照这个放法，如果x, y至少有一个是precolored，那么u一定是precolored
   if (precolored(y->NodeInfo())) {
-    u = y;
-    v = x;
+    u = GetAlias(y);
+    v = GetAlias(x);
   } else {
-    u = x;
-    v = y;
+    u = GetAlias(x);
+    v = GetAlias(y);
   }
-
   worklistMoves->Delete(x, y);
   if (u == v) {
     coalescedMoves.Prepend(x, y);
@@ -170,10 +196,11 @@ void Color::Coalesce() {
   } else if ((precolored(u->NodeInfo()) && OKForAll(Adjacent(v), u)) ||
              (!precolored(u->NodeInfo()) &&
               Conservative(Adjacent(u)->Union(Adjacent(v))))) {
+    coalescedMoves.Append(x, y);
     Combine(u, v);
     AddWorkList(u);
   } else {
-    activeMoves->Append(x, y);
+    activeMoves.Append(x, y);
   }
 }
 
@@ -220,6 +247,7 @@ bool Color::Conservative(live::INodeListPtr nodes) {
 }
 
 void Color::Combine(live::INodePtr u, live::INodePtr v) {
+  // fprintf(stderr, "Combine\n");
   if (freezeWorklist.Contain(v)) {
     freezeWorklist.DeleteNode(v);
   } else {
@@ -246,6 +274,99 @@ void Color::Combine(live::INodePtr u, live::INodePtr v) {
     freezeWorklist.DeleteNode(u);
     spillWorklist.Append(u);
   }
+}
+
+void Color::Freeze() {
+  // fprintf(stderr, "Freeze\n");
+  live::INodePtr node = freezeWorklist.GetList().front();
+  freezeWorklist.DeleteNode(node);
+  simplifyWorklist.Append(node);
+  FreezeMoves(node);
+}
+
+void Color::FreezeMoves(live::INodePtr u) {
+  // fprintf(stderr, "FreezeMoves\n");
+  for (std::pair<live::INodePtr, live::INodePtr> move :
+       NodeMoves(u)->GetList()) {
+    live::INodePtr v;
+    // x: src, y: dst
+    live::INodePtr x = move.first;
+    live::INodePtr y = move.second;
+    // v是这条move与u相连的另一个点
+    if (GetAlias(y) == GetAlias(u)) {
+      v = GetAlias(x);
+    } else {
+      v = GetAlias(y);
+    }
+    activeMoves.Delete(x, y);
+    frozenMoves.Append(x, y);
+
+    if ((!precolored(v->NodeInfo())) && NodeMoves(v)->GetList().empty() &&
+        degree[v] < reg_manager->ColorNum()) {
+      freezeWorklist.DeleteNode(v);
+      simplifyWorklist.Append(v);
+    }
+  }
+}
+
+void Color::SelectSpill() {
+  // fprintf(stderr, "SelectSpill\n");
+  live::INodePtr m = nullptr;
+  int maxWeight = 0;
+  // 选一个degree最大的
+  for (live::INodePtr node : spillWorklist.GetList()) {
+    if (live::LiveGraphFactory::Contain(noSpillTemp, node->NodeInfo()))
+      continue;
+    if (degree[node] > maxWeight) {
+      m = node;
+      maxWeight = degree[node];
+    }
+  }
+  if (m == nullptr) {
+    m = spillWorklist.GetList().front();
+  }
+
+  spillWorklist.DeleteNode(m);
+  // 强行simplify
+  simplifyWorklist.Append(m);
+  FreezeMoves(m);
+}
+
+void Color::AssignColors() {
+  // fprintf(stderr, "AssignColors\n");
+  while (!selectStack.GetList().empty()) {
+    live::INodePtr n = selectStack.GetList().back();
+    selectStack.DeleteNode(n);
+    std::set<std::string> okColors;
+    // 没有rsp
+    for (temp::Temp *reg : reg_manager->Registers()->GetList()) {
+      okColors.insert(*(reg_manager->temp_map_->Look(reg)));
+    }
+    for (live::INodePtr w : adjList[n].GetList()) {
+      if (coloredNodes.Contain(GetAlias(w)) ||
+          precolored(GetAlias(w)->NodeInfo())) {
+        okColors.erase(*(coloring->Look(GetAlias(w)->NodeInfo())));
+      }
+    }
+    if (okColors.empty()) {
+      spilledNodes->Append(n);
+    } else {
+      coloredNodes.Append(n);
+      coloring->Enter(n->NodeInfo(), new std::string(*(okColors.begin())));
+    }
+  }
+  for (live::INodePtr n : coalescedNodes.GetList()) {
+    coloring->Enter(n->NodeInfo(), coloring->Look(GetAlias(n)->NodeInfo()));
+  }
+}
+
+void Color::ShowStates() {
+  fprintf(stderr, "-----------------nodes:-----------------\n");
+  fprintf(stderr, "nodes num:%ld\n",
+          liveness.interf_graph->Nodes()->GetList().size());
+  // for (live::INodePtr node : liveness.interf_graph->Nodes()->GetList()) {
+  //   fprintf(stderr, "node %d\n", node->NodeInfo()->Int());
+  // }
 }
 
 } // namespace col

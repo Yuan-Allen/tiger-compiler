@@ -35,12 +35,15 @@ public:
 
 private:
   frame::Frame *frame_;
-  std::unique_ptr<cg::AssemInstr> assem_instr_;
+  assem::InstrList *instr_list_;
   std::unique_ptr<ra::Result> result_;
   live::LiveGraph liveness;
 
   live::LiveGraph GetLiveGraph();
-  void RewriteProgram();
+  temp::TempList *RewriteProgram(live::INodeListPtr spilledNodes);
+  assem::InstrList *removeMoveInstr(assem::InstrList *il, temp::Map *color);
+
+  void ShowAssem(temp::Map *color);
 };
 
 } // namespace ra

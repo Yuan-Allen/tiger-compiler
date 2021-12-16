@@ -59,6 +59,11 @@ public:
   LiveGraph GetLiveGraph() { return live_graph_; }
   tab::Table<temp::Temp, INode> *GetTempNodeMap() { return temp_node_map_; }
 
+  static temp::TempList *Union(temp::TempList *left, temp::TempList *right);
+  static temp::TempList *Diff(temp::TempList *left, temp::TempList *right);
+  static bool Contain(temp::TempList *left, temp::Temp *right);
+  static bool Equal(temp::TempList *left, temp::TempList *right);
+
 private:
   fg::FGraphPtr flowgraph_;
   LiveGraph live_graph_;
@@ -69,11 +74,6 @@ private:
 
   void LiveMap();
   void InterfGraph();
-
-  temp::TempList *Union(temp::TempList *left, temp::TempList *right);
-  temp::TempList *Diff(temp::TempList *left, temp::TempList *right);
-  bool Contain(temp::TempList *left, temp::Temp *right);
-  bool Equal(temp::TempList *left, temp::TempList *right);
 };
 
 } // namespace live

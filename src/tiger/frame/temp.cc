@@ -81,4 +81,16 @@ void Map::DumpMap(FILE *out) {
   }
 }
 
+void TempList::replaceTemp(temp::Temp *oldt, temp::Temp *newt) {
+  std::list<temp::Temp *> new_list;
+  for (temp::Temp *t : temp_list_) {
+    if (t == oldt) {
+      new_list.push_back(newt);
+    } else {
+      new_list.push_back(t);
+    }
+  }
+  temp_list_ = new_list;
+}
+
 } // namespace temp

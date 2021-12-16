@@ -67,6 +67,7 @@ public:
   void Append(Temp *t) { temp_list_.push_back(t); }
   [[nodiscard]] Temp *NthTemp(int i) const;
   [[nodiscard]] const std::list<Temp *> &GetList() const { return temp_list_; }
+  void replaceTemp(temp::Temp *oldt, temp::Temp *newt);
 
 private:
   std::list<Temp *> temp_list_;

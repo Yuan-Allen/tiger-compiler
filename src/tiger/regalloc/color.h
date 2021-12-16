@@ -20,7 +20,8 @@ struct Result {
 class Color {
   /* TODO: Put your lab6 code here */
 public:
-  Color(live::LiveGraph ln) : liveness(ln) {}
+  Color(live::LiveGraph ln, temp::TempList *noSpillTemps)
+      : liveness(ln), noSpillTemp(noSpillTemps) {}
   col::Result doColoring();
 
 private:
@@ -43,7 +44,7 @@ private:
   // 低度数的传送有关的结点表
   graph::NodeList<temp::Temp> freezeWorklist;
   // 还未做好合并准备的传送指令集合
-  live::MoveList *activeMoves;
+  live::MoveList activeMoves;
   // 一个包含从图中删除的临时变量的栈
   graph::NodeList<temp::Temp> selectStack;
   // 已合并的寄存器集合
@@ -53,6 +54,13 @@ private:
   live::MoveList coalescedMoves;
   // 源操作数和目标操作数冲突的传送指令集合
   live::MoveList constrainedMoves;
+  // 不再考虑合并的传送指令集合
+  live::MoveList frozenMoves;
+  temp::TempList *noSpillTemp;
+  // 已成功着色的结点集合
+  graph::NodeList<temp::Temp> coloredNodes;
+  // 在本轮中要被溢出的结点集合
+  graph::NodeList<temp::Temp> *spilledNodes;
 
   void init();
   void Build();
@@ -72,6 +80,12 @@ private:
   bool OKForAll(live::INodeListPtr nodes, live::INodePtr r);
   bool Conservative(live::INodeListPtr nodes);
   void Combine(live::INodePtr u, live::INodePtr v);
+  void Freeze();
+  void FreezeMoves(live::INodePtr u);
+  void SelectSpill();
+  void AssignColors();
+
+  void ShowStates();
 };
 } // namespace col
 
