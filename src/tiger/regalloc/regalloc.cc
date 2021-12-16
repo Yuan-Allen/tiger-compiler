@@ -90,6 +90,7 @@ temp::TempList *RegAllocator::RewriteProgram(live::INodeListPtr spilledNodes) {
         new_instrlist->Append(new_instr);
       }
     }
+    instr_list_ = new_instrlist;
   }
   instr_list_ = new_instrlist;
   return noSpillTemps;
