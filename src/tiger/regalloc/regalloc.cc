@@ -51,6 +51,11 @@ live::LiveGraph RegAllocator::GetLiveGraph() {
 }
 
 temp::TempList *RegAllocator::RewriteProgram(live::INodeListPtr spilledNodes) {
+  // fprintf(stderr, "spilled nodes:\n");
+  // for (live::INodePtr node : spilledNodes->GetList()) {
+  //   fprintf(stderr, "%d, ", node->NodeInfo()->Int());
+  // }
+  // fprintf(stderr, "\n");
   temp::TempList *noSpillTemps = new temp::TempList();
   assem::InstrList *new_instrlist = nullptr;
   for (live::INodePtr node : spilledNodes->GetList()) {
@@ -92,7 +97,6 @@ temp::TempList *RegAllocator::RewriteProgram(live::INodeListPtr spilledNodes) {
     }
     instr_list_ = new_instrlist;
   }
-  instr_list_ = new_instrlist;
   return noSpillTemps;
 }
 
