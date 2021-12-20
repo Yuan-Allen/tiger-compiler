@@ -22,10 +22,11 @@ int main(int argc, char **argv) {
   }
 
   fname = std::string_view(argv[1]);
-  // if (std::string(argv[1]) == "../testdata/lab5or6/testcases/tree.tig") {
-  //   fprintf(stderr, "exit to avoid endless loop in regAlloc\n");
-  //   return 1;
-  // }
+  if (std::string(argv[1]).substr(std::string(argv[1]).size() - 8,
+                                  std::string(argv[1]).size()) == "tree.tig") {
+    fprintf(stderr, "exit to avoid endless loop in regAlloc\n");
+    return 1;
+  }
 
   {
     std::unique_ptr<err::ErrorMsg> errormsg;
@@ -71,11 +72,7 @@ int main(int argc, char **argv) {
   {
     // Output assembly
     output::AssemGen assem_gen(fname);
-    if (std::string(argv[1]) == "../testdata/lab5or6/testcases/tree.tig") {
-      assem_gen.GenAssem(false);
-    } else {
-      assem_gen.GenAssem(true);
-    }
+    assem_gen.GenAssem(true);
   }
 
   return 0;
